@@ -32,7 +32,7 @@ COLLECTIONS = {
     "Акции РФ": ["GAZP", "SBER", "LKOH", "MGNT", "ROSN"]
 }
 
-# Обработчик /start
+# Обработчик /start - отсюда начинается ВСЕ
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🔍 Какие активы вас интересуют?",
@@ -97,7 +97,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def fetch_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     subs = load_subscriptions()
-    assets = subs.get(str(user_id), {}).get("assets", [])
+    await update.message.reply_text(get_news(subs), reply_markup=main_menu_keyboard())
 
 # Функции для обработки действий
 async def ask_manual_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -189,8 +189,7 @@ async def handle_unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await settings(update, context)
     return STATE_BOT_SETTINGS
 
-async def settings_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Настройка частоты рассылки"""
+""""async def settings_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Добавляем опцию "Отключить рассылку"
     keyboard = [
         ["Посмотреть один раз", "Раз в 5 мин"],
@@ -203,6 +202,7 @@ async def settings_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE)
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
     return STATE_SET_FREQUENCY
+"""
 
 async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Возврат в главное меню"""
@@ -215,8 +215,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await main_menu(update, context)
     return STATE_MAIN_MENU
 
-async def set_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка выбора периодичности"""
+"""async def set_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     frequency = update.message.text
     frequency_map = {
@@ -226,7 +225,7 @@ async def set_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Раз в час": "hourly",
         "1 раз в день": "daily",
         "Отключить рассылку": "off"
-    }
+    }"""
 
 import asyncio
 
@@ -237,7 +236,7 @@ async def update_news():
         await asyncio.sleep(5)
 
 if __name__ == "__main__":
-    app = Application.builder().token("7635567400:AAE8X1sKuIXq7BbM2dyC9r_PNGZDeUyfwHQ").build()
+    app = Application.builder().token("8028661472:AAF4ud-rLBBRCp9c3hE_k55jJvvLZy8XNxQ").build()
     
     conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
@@ -245,7 +244,7 @@ if __name__ == "__main__":
         STATE_SELECT_ASSETS: [
             MessageHandler(filters.Regex(r"^Ввести вручную$"), ask_manual_input),
             MessageHandler(filters.Regex(r"^Посмотреть подборки$"), show_collections),
-            MessageHandler(filters.Regex(r"^Закончить подбор$"), finish_selection),
+            MessageHandler(filters.Regex(r"^Закончить подбор$"), back_to_main),
             # Добавляем обработчики для подборок
             MessageHandler(filters.Regex(r"^(Криптовалюты|Популярные валюты|Акции РФ)$"), handle_collection),
             # Добавляем обработчик для кнопки "Назад"
@@ -255,9 +254,6 @@ if __name__ == "__main__":
             MessageHandler(filters.Regex(r"^Отменить ввод$"), back_to_assets),
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_manual_input)
         ],
-        STATE_SET_FREQUENCY: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, set_frequency)
-        ],
         STATE_MAIN_MENU: [
             MessageHandler(filters.Regex(r"^Запросить новости$"), fetch_news),
             MessageHandler(filters.Regex(r"^Настроить бота$"), settings),
@@ -266,7 +262,7 @@ if __name__ == "__main__":
         STATE_BOT_SETTINGS: [
             MessageHandler(filters.Regex(r"^Подписаться на активы$"), settings_subscribe),
             MessageHandler(filters.Regex(r"^Отписаться от активов$"), settings_unsubscribe),
-            MessageHandler(filters.Regex(r"^Настроить частоту рассылки$"), settings_frequency),
+            #MessageHandler(filters.Regex(r"^Настроить частоту рассылки$"), settings_frequency),
             MessageHandler(filters.Regex(r"^Назад$"), back_to_main)
         ],
         # Добавляем состояние для отписки

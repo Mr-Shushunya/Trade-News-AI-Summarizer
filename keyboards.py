@@ -40,7 +40,7 @@ def settings_keyboard():
     return ReplyKeyboardMarkup(
         [
             ["Подписаться на активы", "Отписаться от активов"],
-            ["Настроить частоту рассылки", "Назад"]
+            ["Закончить"]
         ],
         resize_keyboard=True
     )

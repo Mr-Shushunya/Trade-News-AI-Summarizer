@@ -1,24 +1,43 @@
 {
   "1649399043": {
-    "assets": [],
+    "assets": [
+      "BTC",
+      "ETH",
+      "GAZP",
+      "LKOH"
+    ],
     "frequency": "5min"
   },
   "1914641112": {
     "assets": [
-      "\u0430",
-      " \u0431",
-      "\u041a\u041e\u041a",
-      "\u041f\u041e\u0420\u041d",
-      "BBQ",
-      "BBW",
-      "LSB",
-      "GAY",
-      "USD",
-      "EUR",
-      "JPY",
-      "GBP",
-      "CNY"
+      "SBER",
+      "\u0426\u0411",
+      "TESLA",
+      "RUB",
+      "\u0414\u041e\u041b\u041b\u0410\u0420",
+      "BTC",
+      "ETH",
+      "BNB",
+      "XRP",
+      "ADA",
+      "GAZP",
+      "LKOH",
+      "MGNT",
+      "ROSN",
+      "\u0411\u0418\u0422\u041e\u041a"
     ],
     "frequency": "daily"
+  },
+  "554988380": {
+    "assets": [
+      "BTC",
+      "ETH",
+      "BNB",
+      "XRP",
+      "ADA",
+      "\u0414\u041e\u041b\u041b\u0410\u0420",
+      "\u0417\u041e\u041b\u041e\u0422\u041e"
+    ],
+    "frequency": null
   }
 }
