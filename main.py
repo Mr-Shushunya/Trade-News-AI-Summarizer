@@ -1,3 +1,4 @@
+import asyncio
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -32,6 +33,7 @@ COLLECTIONS = {
     "Акции РФ": ["GAZP", "SBER", "LKOH", "MGNT", "ROSN"]
 }
 
+
 # Обработчик /start - отсюда начинается ВСЕ
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -40,66 +42,51 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return STATE_SELECT_ASSETS
 
-# Ручной ввод активов
-async def handle_manual_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    assets = [a.strip() for a in update.message.text.split(",")]
-    add_assets(update.effective_user.id, assets)
-    await update.message.reply_text("✅ Активы добавлены!", reply_markup=assets_keyboard())
-    return STATE_SELECT_ASSETS
 
-async def handle_collection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка выбора готовой подборки"""
-    collection_name = update.message.text
-    collection_map = {
-        "Криптовалюты": ["BTC", "ETH", "BNB", "XRP", "ADA"],
-        "Популярные валюты": ["USD", "EUR", "JPY", "GBP", "CNY"],
-        "Акции РФ": ["GAZP", "SBER", "LKOH", "MGNT", "ROSN"]
-    }
-    
-    if collection_name in collection_map:
-        user_id = update.effective_user.id
-        add_assets(user_id, collection_map[collection_name])
-        await update.message.reply_text(
-            f"✅ Подборка «{collection_name}» добавлена!",
-            reply_markup=assets_keyboard()
-        )
-    return STATE_SELECT_ASSETS
+# ===ГЛАВНОЕ МЕНЮ===
 
-# Обработчик для кнопки "Назад" в подборках
-async def back_to_assets(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат к основному экрану выбора активов"""
+async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🏠 Главное меню:", reply_markup=main_menu_keyboard())
+    return STATE_MAIN_MENU
+
+
+# 0. Возврат в главное меню
+
+async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат в главное меню"""
+    await main_menu(update, context)
+    return STATE_MAIN_MENU
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена операции"""
+    await update.message.reply_text("🚫 Операция отменена")
+    await main_menu(update, context)
+    return STATE_MAIN_MENU
+
+
+# 1. Запрос новостей
+async def fetch_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    subs = load_subscriptions()
+    await update.message.reply_text(get_news(subs), reply_markup=main_menu_keyboard())
+
+
+# 2. Настройки
+async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("⚙️ Настройки:", reply_markup=settings_keyboard())
+    return STATE_BOT_SETTINGS
+
+# 2.1. Подписаться
+async def settings_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Переход к подписке на активы из настроек"""
     await update.message.reply_text(
         "🔍 Какие активы вас интересуют?",
         reply_markup=assets_keyboard()
     )
     return STATE_SELECT_ASSETS
 
-# Завершение подписки -> выбор периодичности
-async def finish_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("⏱ Выберите периодичность:", reply_markup=frequency_keyboard())
-    return STATE_SET_FREQUENCY
+#Ручной ввод
 
-# Главное меню
-async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🏠 Главное меню:", reply_markup=main_menu_keyboard())
-    return STATE_MAIN_MENU
-
-# Техподдержка
-async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✉️ Опишите проблему разработчику: @Mr_Shushunya")
-
-# Настройки бота
-async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("⚙️ Настройки:", reply_markup=settings_keyboard())
-    return STATE_BOT_SETTINGS
-
-# Запрос новостей
-async def fetch_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    subs = load_subscriptions()
-    await update.message.reply_text(get_news(subs), reply_markup=main_menu_keyboard())
-
-# Функции для обработки действий
 async def ask_manual_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Запрос ручного ввода активов с кнопкой отмены"""
     await update.message.reply_text(
@@ -133,6 +120,17 @@ async def handle_manual_input(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return STATE_SELECT_ASSETS
 
+#Устаревший вариант обработки ручного ввода
+""""
+async def handle_manual_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    assets = [a.strip() for a in update.message.text.split(",")]
+    add_assets(update.effective_user.id, assets)
+    await update.message.reply_text("✅ Активы добавлены!", reply_markup=assets_keyboard())
+    return STATE_SELECT_ASSETS
+"""
+
+#Подборки
+
 async def show_collections(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показ доступных подборок"""
     await update.message.reply_text(
@@ -141,14 +139,34 @@ async def show_collections(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return STATE_SELECT_ASSETS
 
-async def settings_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Переход к подписке на активы из настроек"""
+async def handle_collection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка выбора готовой подборки"""
+    collection_name = update.message.text
+    collection_map = {
+        "Криптовалюты": ["BTC", "ETH", "BNB", "XRP", "ADA"],
+        "Популярные валюты": ["USD", "EUR", "JPY", "GBP", "CNY"],
+        "Акции РФ": ["GAZP", "SBER", "LKOH", "MGNT", "ROSN"]
+    }
+    
+    if collection_name in collection_map:
+        user_id = update.effective_user.id
+        add_assets(user_id, collection_map[collection_name])
+        await update.message.reply_text(
+            f"✅ Подборка «{collection_name}» добавлена!",
+            reply_markup=assets_keyboard()
+        )
+    return STATE_SELECT_ASSETS
+
+async def back_to_assets(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат к основному экрану выбора активов"""
     await update.message.reply_text(
         "🔍 Какие активы вас интересуют?",
         reply_markup=assets_keyboard()
     )
     return STATE_SELECT_ASSETS
 
+
+# 2.2. Отписаться
 async def settings_unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка отписки от активов"""
     user_id = update.effective_user.id
@@ -189,6 +207,20 @@ async def handle_unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await settings(update, context)
     return STATE_BOT_SETTINGS
 
+
+# 3. Техподдержка
+async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✉️ Опишите проблему разработчику: @Mr_Shushunya")
+
+
+
+
+''' # Завершение подписки -> выбор периодичности
+async def finish_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("⏱ Выберите периодичность:", reply_markup=frequency_keyboard())
+    return STATE_SET_FREQUENCY
+'''
+
 """"async def settings_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Добавляем опцию "Отключить рассылку"
     keyboard = [
@@ -204,17 +236,6 @@ async def handle_unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return STATE_SET_FREQUENCY
 """
 
-async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат в главное меню"""
-    await main_menu(update, context)
-    return STATE_MAIN_MENU
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена операции"""
-    await update.message.reply_text("🚫 Операция отменена")
-    await main_menu(update, context)
-    return STATE_MAIN_MENU
-
 """async def set_frequency(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     frequency = update.message.text
@@ -227,16 +248,20 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Отключить рассылку": "off"
     }"""
 
-import asyncio
 
+
+# Парсинг новостей каждые 5 секунд.
+# На текущий момент не реализовано: не успели связать модуль бота с модулем парсинга.
+# Планирую реализовать в июне 2025.
+#
+'''
 async def update_news():
     while True:
-        print("Выполняется код каждые 5 секунд")
-        # Ваш асинхронный код здесь
         await asyncio.sleep(5)
+'''
 
 if __name__ == "__main__":
-    app = Application.builder().token("8028661472:AAF4ud-rLBBRCp9c3hE_k55jJvvLZy8XNxQ").build()
+    app = Application.builder().token("iwontshowyoumytoken").build()
     
     conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
